@@ -1,20 +1,29 @@
+/**
+ * Load libraries
+ */
 var gulp        = require('gulp');
 var sass        = require('gulp-sass');
+var changed     = require('gulp-changed');
 var watch       = require('gulp-watch');
 var connect     = require('gulp-connect');
 var opn         = require('opn');
 var concat      = require('gulp-concat');
 
+/**
+ * Definitions for this project
+ */
 var sourcePaths = {
   styles: ['src/styles/**/*.scss'],
   html: ['src/**/*.html'],
-  js: ['src/js/*.js']
+  js: ['src/js/*.js'],
+  images: ['src/images/**/*']
 };
 
 var destPaths = {
   styles: 'dist/css',
   html: 'dist',
-  js: 'dist/js'
+  js: 'dist/js',
+  images: 'dist/images',
 };
 
 var server = {
@@ -22,12 +31,27 @@ var server = {
   port: '8080'
 };
 
-gulp.task('watch', function() {
-  gulp.watch('src/styles/**/*.scss',['styles']);
-  gulp.watch('src/**/*.html', ['html']);
-  gulp.watch('src/js/**/*.js', ['js']);
+/**
+ * Tasks
+ */
+
+/**
+ * HTML Task
+ *
+ *  - Copy images to build folder
+ */
+gulp.task('html', function() {
+  gulp.src(sourcePaths.html)
+    .pipe(gulp.dest(destPaths.html))
+    .pipe(connect.reload());
 });
 
+/**
+ * Styles Task
+ *
+ *  - Compile Sass to Css
+ *  - Copy files to build folder
+ */
 gulp.task('styles', function() {
   gulp.src(sourcePaths.styles)
     .pipe(sass().on('error', sass.logError))
@@ -35,25 +59,58 @@ gulp.task('styles', function() {
     .pipe(connect.reload());
 });
 
-gulp.task('html', function () {
-  gulp.src(sourcePaths.html)
-    .pipe(gulp.dest(destPaths.html))
-    .pipe(connect.reload());
-});
-
-gulp.task('js', function () {
+/**
+ * Javascript Task
+ *
+ *  - Concatenate all js files
+ *  - Copy file to build folder
+ */
+gulp.task('js', function() {
   gulp.src(sourcePaths.js)
     .pipe(concat('main.js'))
     .pipe(gulp.dest(destPaths.js))
-    .pipe(gulp.dest(destPaths.js))
     .pipe(connect.reload());
 });
 
-gulp.task('openbrowser', function() {
-  opn( 'http://' + server.host + ':' + server.port );
+/**
+ * Images Task
+ *
+ *  - Copy images to build folder
+ */
+gulp.task('images', function() {
+  return gulp.src(sourcePaths.images)
+    .pipe(changed(destPaths.images)) // Ignore unchanged files
+    .pipe(gulp.dest(destPaths.images))
+    .pipe(connect.reload());
 });
 
-gulp.task('webserver', ['watch'], function () {
+/**
+ * Watch task
+ *
+ *  - Watch HTML, Sass, Javascript and image files
+ */
+gulp.task('watch', function() {
+  gulp.watch(sourcePaths.styles, ['styles']);
+  gulp.watch(sourcePaths.html, ['html']);
+  gulp.watch(sourcePaths.js, ['js']);
+  gulp.watch(sourcePaths.images, ['images']);
+});
+
+/**
+ * Openbrowser Task
+ *
+ *  - Open the browser with url
+ */
+gulp.task('openbrowser', function() {
+  opn('http://' + server.host + ':' + server.port);
+});
+
+/**
+ * Webserver Task
+ *
+ *  - Runs the Webserver
+ */
+gulp.task('webserver', ['watch'], function() {
   connect.server({
     root: 'dist',
     port: server.port,
@@ -62,6 +119,7 @@ gulp.task('webserver', ['watch'], function () {
   });
 });
 
-gulp.task('build', ['styles', 'html', 'js']);
-
+// build task
+gulp.task('build', ['styles', 'html', 'js', 'images']);
+// default task
 gulp.task('default', ['build', 'webserver', 'watch', 'openbrowser']);
